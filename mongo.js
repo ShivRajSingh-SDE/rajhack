@@ -29,6 +29,11 @@ const userSchema = new mongoose.Schema({
   resetPasswordOTP: {
     type: String,
   },
+  roleadmin: {
+    type: String,
+    enum: ["police", "banker", "public"],
+    default: "public",
+  },
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {

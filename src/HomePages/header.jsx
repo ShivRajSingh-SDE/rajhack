@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
 import { Link, useNavigate } from "react-router-dom";
 import { AiFillHome } from "react-icons/ai";
 
@@ -18,6 +19,7 @@ import img1 from "../assets/pic4.png";
 
 export default function Header() {
   const [toggle, setToggle] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   const toggleMenu = () => {
@@ -36,6 +38,33 @@ export default function Header() {
       window.location.reload();
     }
   };
+
+  useEffect(() => {
+    const userEmail = localStorage.getItem("userEmail");
+    console.log(userEmail);
+
+    if (userEmail) {
+      fetch(`http://localhost:5000/users/${userEmail}`)
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data);
+          if (data && data.roleadmin === "police") {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+        })
+        .catch((error) => console.error("Error fetching user data:", error));
+    }
+  }, []);
+
+  // useEffect(() => {
+  //   const userEmail = localStorage.getItem("userEmail");
+  //   fetch(`http://localhost:5000/users/${userEmail}`)
+  //     .then((response) => response.json())
+
+  //     .catch((error) => console.error("Error fetching user data:", error));
+  // }, []);
 
   return (
     <div className=" ">
@@ -63,13 +92,22 @@ export default function Header() {
           </ul>
         </div>
 
-        <div>
+        <div className=" justify-around flex space-x-2">
           <button
             onClick={handleLogin}
-            className=" bg-[#2bfff457] rounded-2xl p-3 drop-shadow-2xl shadow-2xl"
+            className="bg-[#2bfff457] rounded-2xl p-3 drop-shadow-2xl shadow-2xl"
           >
             {localStorage.getItem("userEmail") ? "Logout" : "Login"}
           </button>
+
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="admin bg-[#2bfff457] rounded-2xl p-3 drop-shadow-2xl shadow-2xl"
+            >
+              Admin
+            </Link>
+          )}
         </div>
       </div>
       <div

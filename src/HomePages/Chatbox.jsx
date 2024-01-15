@@ -7,7 +7,7 @@ import Dummy from "../Aware/Dummy";
 
 const Chatbox = () => {
   const [selectedOption, setSelectedOption] = useState(null);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleOptionClick = (option) => {
     setSelectedOption(option);
@@ -32,7 +32,7 @@ const Chatbox = () => {
 
         <div className="  ">{isOpen ? "Close" : "Open"}</div>
       </div>
-      <Dummy />
+      {/* <Dummy /> */}
 
       <div>
         {isOpen && (

@@ -2,137 +2,187 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const SeeReport = () => {
-  const [userId, setUserId] = useState("");
-  const [password, setPassword] = useState("");
-  const [showData, setShowData] = useState(false);
-  const [userData, setUserData] = useState([]);
+  const [formEntries, setFormEntries] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/form-entries");
+        console.log("Fetched data:", response.data); // Log the retrieved data
+        setFormEntries(response.data);
+      } catch (error) {
+        console.error("Error fetching form entries:", error);
+      }
+    };
 
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const userEmail = localStorage.getItem("userEmail");
+
+    if (userEmail) {
+      fetch(`http://localhost:5000/users/${userEmail}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data && data.roleadmin === "police") {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+        })
+        .catch((error) => console.error("Error fetching user data:", error));
+    }
+  }, []);
+
+  const handleStatusChange = async (e, entryId) => {
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/authenticate",
+      const selectedStatus = e.target.value;
+
+      const response = await axios.put(
+        `http://localhost:5000/form-entries/${entryId}`,
         {
-          userId,
-          password,
+          status: selectedStatus,
         }
       );
 
-      const { role } = response.data;
-
-      if (role === "admin") {
-        // Fetch data from the server when authenticated
-        fetchData();
-        // Hide the login form and show data
-        setShowData(true);
-        // Push the user ID into local storage
-        localStorage.setItem("userId", userId);
-        alert("Login Done");
+      if (response.status === 200) {
+        window.location.reload();
       } else {
-        // Show custom alert for unauthorized access
-        alert("Please Recheck your credentials.");
+        console.error(`Failed to update status for entry ID ${entryId}`);
       }
     } catch (error) {
-      // Show custom alert for any error during authentication
-      alert("Please Recheck your credentials.");
+      console.error("Error updating status:", error);
     }
   };
 
-  const handleLogout = () => {
-    // Clear local storage and reset authentication state
-    localStorage.removeItem("userId");
-    setShowData(false);
+  const handleDescriptionChange = (entryId, newDescription) => {
+    // Update the description in the component's state
+    setFormEntries((prevEntries) =>
+      prevEntries.map((entry) =>
+        entry._id === entryId
+          ? { ...entry, description: newDescription }
+          : entry
+      )
+    );
   };
 
-  // Check if the user is authenticated
-  const isAuthenticated = localStorage.getItem("userId");
-
-  // Function to fetch data from the server
-  const fetchData = async () => {
+  const handleDescriptionSubmit = async (entryId, newDescription) => {
     try {
-      const response = await axios.get("http://localhost:5000/get-data");
-      setUserData(response.data);
+      const response = await axios.put(
+        `http://localhost:5000/form-entries/${entryId}`,
+        {
+          description: newDescription,
+        }
+      );
+
+      if (response.status === 200) {
+        window.location.reload();
+      } else {
+        console.error(`Failed to update description for entry ID ${entryId}`);
+      }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error updating description:", error);
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchData();
-    }
-  }, [isAuthenticated]);
+  const handleAttachmentPreview = (attachment) => {
+    // Implement attachment preview logic here (e.g., open a modal or a new window)
+    console.log("Previewing attachment:", attachment);
+  };
 
   return (
-    <div id="main" className="h-[full] p-10">
-      {!isAuthenticated ? (
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col justify-center items-center bg-[#ffffff4d] max-w-[300px] mx-auto p-5 rounded-2xl"
-        >
-          <label>
-            ID:
-            <input
-              className="flex flex-row"
-              type="text"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-            />
-          </label>
-          <br />
-          <label>
-            Password:
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-          <br />
-          <button type="submit">Submit</button>
-        </form>
-      ) : (
-        <div>
-          <button
-            className=" bg-[#ffffff75] p-3 rounded-2xl"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
+    <div className="h-full mt-5">
+      {isAdmin && (
+        <div className="data justify-center items-center flex flex-col m-5">
+          <h2 className="font-sans text-black text-4xl my-5 underline">
+            Cyber Victims Report
+          </h2>
 
-          {showData && (
-            <div className="data justify-center items-center flex flex-col">
-              <h2 className="font-serif text-3xl text-white my-5 underline">
-                Data
-              </h2>
-              {userData.map((user) => (
-                <div
-                  key={user._id}
-                  className="user-data border flex flex-col items-start bg-[#ffffff54] rounded-2xl p-2 my-3"
-                >
-                  <p>
-                    <span>Name:</span> {user.name}
-                  </p>
-                  <p>
-                    <span>Mobile Number:</span> {user.mobileNumber}
-                  </p>
-                  <p>
-                    <span>Email:</span> {user.email}
-                  </p>
-                  <p>
-                    <span>Position:</span> {user.position}
-                  </p>
-                  <p>
-                    <span>Message:</span> {user.message}
-                  </p>
-                  <p>
-                    <span>Sentiment:</span> {user.sentiment}
-                  </p>
-                </div>
+          <table className="table-auto w-[100%]">
+            <thead>
+              <tr className="drop-shadow-xl rounded-xl shadow-2xl">
+                <th className="border px-4 py-2">S.N</th>
+                <th className="border px-4 py-2">Name</th>
+                <th className="border px-4 py-2">Mobile Number</th>
+                <th className="border px-4 py-2">Type</th>
+                <th className="border px-4 py-2">Message</th>
+                <th className="border px-4 py-2">Status</th>
+                <th className="border px-4 py-2">Description</th>
+                <th className="border px-4 py-2">Attachment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formEntries.map((formEntry, index) => (
+                <tr key={formEntry._id} className="bg-[#ffffff54]">
+                  <td className="border px-4 py-2">{index + 1}</td>
+                  <td className="border px-4 py-2">{formEntry.name}</td>
+                  <td className="border px-4 py-2">{formEntry.mobileNumber}</td>
+                  <td className="border px-4 py-2">{formEntry.position}</td>
+                  <td className="border px-4 py-2">{formEntry.message}</td>
+                  <td className="border px-4 py-2">
+                    <select
+                      className="bg-[#fffff] cursor-pointer justify-center items-center flex text-[black] drop-shadow-2xl shadow-2xl rounded-2xl p-2"
+                      onChange={(e) => handleStatusChange(e, formEntry._id)}
+                      value={formEntry.status}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Under Processing">Under Processing</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  </td>
+                  <td className="border px-4 py-2">
+                    <input
+                      type="text"
+                      className="bg-[#80808041] p-2 rounded-xl"
+                      value={formEntry.description || ""}
+                      onChange={(e) =>
+                        handleDescriptionChange(formEntry._id, e.target.value)
+                      }
+                    />
+                  </td>
+
+                  <td className="border px-4 py-2">
+                    {formEntry.attachments &&
+                      formEntry.attachments.map(
+                        (attachment, attachmentIndex) => (
+                          <div key={attachmentIndex}>
+                            {attachment.attachment && (
+                              <a
+                                href={`data:application/pdf;base64,${attachment.attachment}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-[pink] p-3"
+                                download={`Document_${attachmentIndex + 1}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                Download Document {attachmentIndex + 1}
+                              </a>
+                            )}
+                            
+                          </div>
+                        )
+                      )}
+                  </td>
+
+                  <td className="border px-4 py-2">
+                    <button
+                      className="bg-[#00ffff4b] hover:drop-shadow-2xl hover:bg-[#8080802a] p-2 rounded-2xl shadow-2xl"
+                      onClick={() =>
+                        handleDescriptionSubmit(
+                          formEntry._id,
+                          formEntry.description
+                        )
+                      }
+                    >
+                      Submit
+                    </button>
+                  </td>
+                </tr>
               ))}
-            </div>
-          )}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

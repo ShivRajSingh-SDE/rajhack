@@ -35,9 +35,11 @@ const Reg = () => {
         setAlertMessage("User Already exists");
         setShowAlert(true);
       } else if (response.data === "not exist") {
+        localStorage.setItem("userEmail", email);
+        navigate("/");
+        window.location.reload();
         setAlertMessage("Registrations Done");
         setShowAlert(true);
-        localStorage.setItem("userEmail", email);
       }
     } catch (error) {
       setAlertMessage("Wrong Details");

@@ -12,6 +12,7 @@ import Reg from "./Auth/Reg";
 import Forgot from "./Auth/Forgot";
 import Aware from "./Aware/Aware";
 import Dummy from "./Aware/Dummy";
+import Status from "./Pages/Staus";
 
 function App() {
   return (
@@ -20,13 +21,14 @@ function App() {
 
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/report" element={<SeeReport />} />
+        <Route path="/admin" element={<SeeReport />} />
         <Route path="/dash" element={<dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Reg />} />
         <Route path="/forgot" element={<Forgot />} />
         <Route path="/awareness" element={<Aware />} />
         <Route path="/dummy" element={<Dummy />} />
+        {/* <Route path="/status" element={<Status />} /> */}
       </Routes>
     </div>
   );

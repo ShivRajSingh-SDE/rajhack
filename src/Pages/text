@@ -1,199 +1,139 @@
-import React, { useState } from "react";
-import "tailwindcss/tailwind.css";
-import Sentiment from "sentiment";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-const Form = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    mobileNumber: "",
-    email: "",
-    position: "",
-    message: "",
-  });
-
-  const [modelOutput, setModelOutput] = useState(null);
-  const [error, setError] = useState(null);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
+const SeeReport = () => {
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [showData, setShowData] = useState(false);
+  const [userData, setUserData] = useState([]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const sentimentAnalysis = new Sentiment();
-      const sentimentResult = sentimentAnalysis.analyze(formData.message);
+      const response = await axios.post(
+        "http://localhost:5000/api/authenticate",
+        {
+          userId,
+          password,
+        }
+      );
 
-      setModelOutput(sentimentResult.score >= 0 ? "positive" : "negative");
+      const { role } = response.data;
 
-      const response = await fetch("http://localhost:5000/submit-form", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      if (role === "admin") {
+        fetchData();
 
-      if (!response.ok) {
-        const errorMessage = await response.text();
-        console.error(
-          `Form submission failed with status ${response.status}: ${errorMessage}`
-        );
-        throw new Error(
-          `Form submission failed with status ${response.status}`
-        );
+        setShowData(true);
+
+        localStorage.setItem("userId", userId);
+        alert("Login Done");
+      } else {
+        alert("Please Recheck your credentials.");
       }
-
-      console.log("Form submitted successfully");
-      alert("Form submitted");
-
-      // Reset the form data
-      setFormData({
-        name: "",
-        mobileNumber: "",
-        email: "",
-        position: "",
-        message: "",
-      });
-
-      // Reset the model output and error
-      setModelOutput(null);
-      setError(null);
     } catch (error) {
-      console.error("Error submitting form:", error);
-      setError("Error submitting form. Please try again.");
+      alert("Please Recheck your credentials.");
     }
   };
 
+  const handleLogout = () => {
+    // Clear local storage and reset authentication state
+    localStorage.removeItem("userId");
+    setShowData(false);
+  };
+
+  // Check if the user is authenticated
+  const isAuthenticated = localStorage.getItem("userId");
+
+  // Function to fetch data from the server
+  const fetchData = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/get-data");
+      setUserData(response.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchData();
+    }
+  }, [isAuthenticated]);
+
   return (
-    <div className="container mx-auto mt-8 my-5">
-      <form
-        onSubmit={handleSubmit}
-        className="max-w-md mx-auto bg-[#ffffffc0] border drop-shadow-2xl shadow-2xl p-8 shadow-md rounded-md"
-      >
-        <div className="mb-4">
-          <label
-            htmlFor="name"
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Name
+    <div id="main" className="h-[full] p-10">
+      {!isAuthenticated ? (
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col justify-center items-center bg-[#ffffff4d] max-w-[300px] mx-auto p-5 rounded-2xl"
+        >
+          <label>
+            ID:
+            <input
+              className="flex flex-row"
+              type="text"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            />
           </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            className="w-full border rounded-md py-2 px-3 focus:outline-none focus:border-blue-500"
-            required
-          />
-        </div>
-
-        <div className="mb-4">
-          <label
-            htmlFor="mobileNumber"
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Mobile Number
+          <br />
+          <label>
+            Password:
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </label>
-          <input
-            type="tel"
-            id="mobileNumber"
-            name="mobileNumber"
-            value={formData.mobileNumber}
-            onChange={handleInputChange}
-            className="w-full border rounded-md py-2 px-3 focus:outline-none focus:border-blue-500"
-            required
-          />
-        </div>
-
-        <div className="mb-4">
-          <label
-            htmlFor="email"
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            className="w-full border rounded-md py-2 px-3 focus:outline-none focus:border-blue-500"
-            required
-          />
-        </div>
-
-        <div className="mb-4">
-          <label
-            htmlFor="position"
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Crime Type
-          </label>
-          <select
-            id="position"
-            name="position"
-            value={formData.position}
-            onChange={handleInputChange}
-            className="w-full border rounded-md py-2 px-3 focus:outline-none focus:border-blue-500"
-            required
-          >
-            <option value="">Select Position</option>
-            <option value="sde">Online</option>
-            <option value="fullStack">Harassment </option>
-          </select>
-        </div>
-
-        <div className="mb-4">
-          <label
-            htmlFor="message"
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Report
-          </label>
-          <textarea
-            id="message"
-            name="message"
-            value={formData.message}
-            onChange={handleInputChange}
-            className="w-full border rounded-md py-6 px-3 focus:outline-none focus:border-blue-500"
-            required
-          ></textarea>
-        </div>
-
-        <div className="flex items-center justify-center mt-4">
+          <br />
+          <button type="submit">Submit</button>
+        </form>
+      ) : (
+        <div>
           <button
-            type="submit"
-            className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:shadow-outline-blue"
+            className=" bg-[#ffffff75] p-3 rounded-2xl"
+            onClick={handleLogout}
           >
-            Submit
+            Logout
           </button>
-        </div>
-      </form>
 
-      {modelOutput !== null && (
-        <div className="model mt-8">
-          <h2 className="text-xl font-bold mb-4">Sentiment:</h2>
-          <p className={`bg-gray-100 p-4 rounded-md ${modelOutput}`}>
-            {modelOutput}
-          </p>
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-8 text-red-500">
-          <p>{error}</p>
+          {showData && (
+            <div className="data justify-center items-center flex flex-col">
+              <h2 className="font-serif text-3xl text-white my-5 underline">
+                Data
+              </h2>
+              {userData.map((user) => (
+                <div
+                  key={user._id}
+                  className="user-data border flex flex-col items-start bg-[#ffffff54] rounded-2xl p-2 my-3"
+                >
+                  <p>
+                    <span>Name:</span> {user.name}
+                  </p>
+                  <p>
+                    <span>Mobile Number:</span> {user.mobileNumber}
+                  </p>
+                  <p>
+                    <span>Email:</span> {user.email}
+                  </p>
+                  <p>
+                    <span>Position:</span> {user.position}
+                  </p>
+                  <p>
+                    <span>Message:</span> {user.message}
+                  </p>
+                  <p>
+                    <span>Sentiment:</span> {user.sentiment}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 };
 
-export default Form;
+export default SeeReport;

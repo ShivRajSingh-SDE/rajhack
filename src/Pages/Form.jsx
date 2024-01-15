@@ -1,43 +1,60 @@
 import React, { useState } from "react";
+import axios from "axios";
+import { v4 as uuidv4 } from "uuid";
 import "tailwindcss/tailwind.css";
 
 const Form = () => {
-  const [modelOutput, setModelOutput] = useState(null);
-  const [error, setError] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [modelOutput, setModelOutput] = useState("");
+  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
+    id: uuidv4(),
     name: "",
     mobileNumber: "",
     email: "",
     position: "",
     message: "",
+    image: null,
   });
 
+  // Define handleInputChange function
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData((prevData) => ({
+      ...prevData,
       [name]: value,
-    });
+    }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setSelectedFile(file);
+  };
+
+  // Update the form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:5000/submit-form", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`, // Send any necessary authorization token
-        },
-        body: JSON.stringify(formData),
+      const formDataWithFile = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        formDataWithFile.append(key, value);
       });
 
-      if (!response.ok) {
-        const errorMessage = await response.text();
+      if (selectedFile) {
+        formDataWithFile.append("file", selectedFile);
+      }
+
+      const response = await axios.post(
+        "http://localhost:5000/submit-form",
+        formDataWithFile
+      );
+
+      if (response.status !== 200) {
         console.error(
-          `Form submission failed with status ${response.status}: ${errorMessage}`
+          `Form submission failed with status ${response.status}: ${response.data}`
         );
         throw new Error(
           `Form submission failed with status ${response.status}`
@@ -47,19 +64,24 @@ const Form = () => {
       console.log("Form submitted successfully");
       alert("Form submitted");
 
-      // Reset the form data
+      // Clear the form data and selected file
       setFormData({
+        id: uuidv4(),
         name: "",
         mobileNumber: "",
         email: "",
         position: "",
         message: "",
+        file: null,
       });
+
+      setSelectedFile(null);
+      setSelectedImage(null); // Add this line to clear the selected image
 
       setModelOutput(null);
       setError(null);
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error("Error submitting form:", error.message);
       setError("Error submitting form. Please try again.");
     }
   };
@@ -67,7 +89,6 @@ const Form = () => {
   const isLoggedIn = !!localStorage.getItem("userEmail");
 
   if (!isLoggedIn) {
-    // If the user is not logged in, render a login button or redirect to the login page
     return (
       <div className="container mx-auto mt-8 my-5">
         <button
@@ -105,7 +126,6 @@ const Form = () => {
             required
           />
         </div>
-
         <div className="mb-4">
           <label
             htmlFor="mobileNumber"
@@ -123,7 +143,6 @@ const Form = () => {
             required
           />
         </div>
-
         <div className="mb-4">
           <label
             htmlFor="position"
@@ -140,11 +159,10 @@ const Form = () => {
             required
           >
             <option value="">Select Position</option>
-            <option value="sde">Online</option>
-            <option value="fullStack">Harassment </option>
+            <option value="Online">Online</option>
+            <option value="Harassment">Harassment</option>
           </select>
         </div>
-
         <div className="mb-4">
           <label
             htmlFor="message"
@@ -162,6 +180,21 @@ const Form = () => {
           ></textarea>
         </div>
 
+        <div className="mb-4">
+          <label
+            htmlFor="image"
+            className="block text-gray-700 text-sm font-bold mb-2"
+          >
+            Image
+          </label>
+          <input
+            className="w-full border rounded-md py-2 px-3 focus:outline-none focus:border-blue-500"
+            type="file"
+            name="image"
+            onChange={handleFileChange}
+          />
+        </div>
+
         <div className="flex items-center justify-center mt-4">
           <button
             type="submit"
@@ -171,21 +204,6 @@ const Form = () => {
           </button>
         </div>
       </form>
-
-      {modelOutput !== null && (
-        <div className="model mt-8">
-          <h2 className="text-xl font-bold mb-4">Sentiment:</h2>
-          <p className={`bg-gray-100 p-4 rounded-md ${modelOutput}`}>
-            {modelOutput}
-          </p>
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-8 text-red-500">
-          <p>{error}</p>
-        </div>
-      )}
     </div>
   );
 };
